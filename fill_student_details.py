@@ -36,46 +36,50 @@ async def fill_profile_info(browser_context, llm):
         llm=llm,
         task="""In the Profile Information section:
         1. First locate and click the edit button at the top of the form
+         In the Profile Information section:
+        1. First locate and click the edit button at the top of the form
 
         2. General Details (look for the "General Details" heading):
-           - For Gender: Click dropdown, select 'Female' from visible options
+           - Select Gender: Click dropdown, select 'Female' from the options
            - Set Date of birth to '13-09-2003'
            - Enter Passport Number '564432218654'
-           - For Issue Country: type India, in dropdown India appears, select 'India'
-           - For Issue State: type Jharkhand, in dropdown Jharkhand appears, select 'Jharkhand'
-           - For Marital Status: Click dropdown, select 'Single'
-           Scroll the page down slowly and check continuously until the "Lead Details" heading appears.
+           - Select Issue Country: type India, in dropdown India appears, select 'India'
+           - For Select Issue State: type Jharkhand, in dropdown Jharkhand appears, select 'Jharkhand'
+           - For Select Marital Status: Click dropdown, select 'Single'
+           Scroll the page down 60 pixels and check continuously until the fields like "Select Lead Quality","Follow Up Date", etc fields are visible and fill these fields with the data.
 
         3. Lead Details (immediately below General Details):
-           - For Lead Quality: Click dropdown, select 'Warm'
+           - For Select Lead Quality: Click dropdown, select 'Warm'
            - Fill Follow Up Date to '13-09-2025'
            - For Counsellor Name: Click dropdown, select 'Select All'
-           - Enter 'Canada' in Search by Key field
+           - Enter 'Canada' in Select Search by Key field
            - For Sub Agent: Click dropdown, select 'aaa'
            - Set Lead Source to 'Unisetu'
-           Scroll the page down slowly and check continuously until the "Emergency Contact Details" heading appears.
+           Scroll the page 60 pixels and check continuously until the fields like "Enter Name","Enter Email",etc fields are found and fill those field with the data .
         4. Emergency Contact Details:
-           - Enter Emergency Contact Name as "Jatan Jain"
-           - Set Emergency Contact Email to 'jatan@gmail.com'
-           - Set Emergency Contact Number to '9932412212'
-           - For Relationship: Click dropdown, select 'Sibling'
+           - Enter Emergency Contact "Enter Name" field as "Jatan Jain"
+           - Set Emergency Contact Email "Enter Email" field to 'jatan@gmail.com'
+           - Set Emergency Contact Number "Enter Contact Number" to '9932412212'
+           - For Select Relationship field: Click dropdown, select 'Sibling'
 
         5. Saving the form:
-           - Scroll the page up slowly and check continuously until the "Save" button is visible and then cliock to save the details.
+           - Scroll the page up slowly and check continuously until the "Save" button is found and then click to save the details.
            - Click the save button
         Important Notes:
         - Verify each field is visible before interacting
         - Wait for dropdown options to appear before selecting
         - Confirm each section heading before filling fields""",
         browser_context=browser_context,
-        use_vision=False
+        use_vision=True
     )
     return await agent.run()
 
 async def fill_student_preferences(browser_context, llm):
     agent = Agent(
         llm=llm,
-        task="""In the Student Preferences section: Click edit, Select Preferred Country as Canada, Intake as Fall 2024, click save.""",
+        task="""In the Student Preferences section: Click on the edit button, 
+        Preferred Country dropdown menue: Choose Canada , Preferred Intake dropdown: Select September 2025, 
+        Preferred Degree dropdown: Select Ph.D.,Preferred Course Dropdown: Select Agronomy. click save. Scroll 60 pixels continuosly to make more fields visible""",
         browser_context=browser_context,
         use_vision=True
     )
@@ -84,9 +88,27 @@ async def fill_student_preferences(browser_context, llm):
 async def fill_academic_info(browser_context, llm):
     agent = Agent(
         llm=llm,
-        task="""In the Academic Information section: Click edit, fill Last education as Bachelor's degree, Field of study as Computer Science, CGPA as 8.5, click save.""",
+        task="""In the Academic Information section: Click edit,
+        All the below fields are in Left to right order for 3 field then second row for next 3 fields and so on.Kepp scrolling if needed to make more fields visible.
+          Fill Select Country field: Type "Canada" then a dropdown will appear Select the Canada from the dropdown,
+          Fill Select State field: Type "Ontario" then a dropdown will appear Select the Ontario from the dropdown,
+          Fill Select Qualification field: Type "Bachelors degree" then a dropdown will appear Select the Bachelors degree from the dropdown,
+          Left of that will be Select gap in studies field: Click dropdown, select '0'.
+          left of that will be the Enter Years of education Field: Type 4,
+          ##Below the above details new field will appear, fill those fields as:
+          Select Degree Type field : type "BA" then a dropdown will appear Select the BA from the dropdown,
+          Select Degree Specialisation field: Type "Agricultural Science" then a dropdown will appear Select the Agricultural Science from the dropdown,
+          Select grading Scheme field: Click on the fied and select "CGPA" from the dropdown,
+          Enter Grades field: Type 8.5, 
+          Do you have backlogs- Select Yes/No field: Select No,
+          Select Accridation field: Click on the fied and select "A++" from the dropdown,  
+          Select University field: Type "University of Delhi" then a dropdown will appear Select the "University of Delhi" from the dropdown,
+          Documents field: Type UG Eight Sem Mark Sheet and then a dropdown will appear Select the "UG Eight Sem Mark Sheet" from the dropdown,
+          Click on the Upload Document tab and upload the document file: "c:\\Users\\91787\\Documents\\Browser automation\\Sunderam Dutta portfolio.pdf" , and then click on the save button.
+         .""",
         browser_context=browser_context,
-        use_vision=True
+        use_vision=True,
+        upload_files={"marksheet": "c:\\Users\\91787\\Documents\\Browser automation\\Sunderam Dutta portfolio.pdf"}  # Changed from 'files' to 'upload_files'
     )
     return await agent.run()
 
@@ -155,7 +177,7 @@ async def fill_background(browser_context, llm):
 
 async def get_llm():
     return ChatGoogleGenerativeAI(
-        model="gemini-2.0-flash-exp",  # Updated to use gemini-2.0-flash-exp
+        model="gemini-2.5-pro-preview-05-06",  # Updated to use gemini-2.0-flash-exp
         google_api_key=api_key,
         temperature=0.1,
         use_vision=True
@@ -181,8 +203,22 @@ async def main():
         print("Starting to fill Profile Information...")
         await fill_profile_info(context, llm)
         print("Profile Information completed")
+        await asyncio.sleep(2)  # Wait between sections
 
-        print("\nInitial testing phase completed successfully")
+        # Test Phase 3: Student Preferences
+        print("\n=== Testing Student Preferences ===")
+        print("Starting to fill Student Preferences...")
+        await fill_student_preferences(context, llm)
+        print("Student Preferences completed")
+        await asyncio.sleep(2)  # Wait between sections
+
+        # Test Phase 4: Academic Information
+        print("\n=== Testing Academic Information ===")
+        print("Starting to fill Academic Information...")
+        await fill_academic_info(context, llm)
+        print("Academic Information completed")
+
+        print("\nAll test phases completed successfully")
 
     except Exception as e:
         print(f"\nAn error occurred: {e}")

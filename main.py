@@ -20,7 +20,7 @@ async def setup_browser():
 async def create_student(browser_context, llm):
     agent = Agent(
         llm=llm,
-        task="go to https://staging-csp-portal.leapscholar.com/summary-dashboard, find the Add New Student button in the dashboard and click on it, then a popup form will open up, your job is to fill the form and submit it. Here is the form details: Given Name*= kanc , Last Name*=  jain, Mobile Number*= 9423427223, remember mobile number is Indian so the dropdown will be 91, Email= kanc@gmail.com, select sub agent= No sub agent this will be a dropdown, click on Enable student login for this profile and then lastly click create student button on the bottom left, also a pop up with confirmation will come after the task is done click on the confirmation button.",
+        task="go to https://staging-csp-portal.leapscholar.com/summary-dashboard, find the Add New Student button in the dashboard and click on it, then a popup form will open up, your job is to fill the form and submit it. Here is the form details: Given Name*= keshav , Last Name*=  jain, Mobile Number*= 9423527223, remember mobile number is Indian so the dropdown will be 91, Email= keshav@gmail.com, select sub agent= No sub agent this will be a dropdown, click on Enable student login for this profile and then lastly click create student button on the bottom left, also a pop up with confirmation will come after the task is done click on the confirmation button.",
         browser_context=browser_context, # Pass the shared context
         use_vision=True
     )
@@ -42,7 +42,7 @@ async def main():
     context = None # Initialize context variable
     try:
         browser = await setup_browser()
-        llm = ChatGoogleGenerativeAI(model='gemini-2.0-flash-exp')
+        llm = ChatGoogleGenerativeAI(model='gemini-2.5-flash-preview-05-20')
         
         # Create a shared browser context from the browser instance
         context = await browser.new_context()
