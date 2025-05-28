@@ -1,9 +1,10 @@
 
-from browser_use import Agent, Browser, BrowserConfig
+from browser_use import Agent, Browser, BrowserConfig,Controller, ActionResult
 from dotenv import load_dotenv
 import os
 import asyncio
 from langchain_google_genai import ChatGoogleGenerativeAI
+from typing import Any
 
 load_dotenv()
 api_key = os.getenv("GOOGLE_API_KEY")
@@ -24,11 +25,14 @@ async def setup_browser():
 async def navigate_to_profile(browser_context, llm):
     agent = Agent(
         llm=llm,
-        task="Navigate to https://staging-csp-portal.leapscholar.com/profile/23541?key=PROFILE and wait for the page to load completely.",
+        task="Navigate to https://staging-csp-portal.leapscholar.com/profile/23540?key=PROFILE and wait for the page to load completely.",
         browser_context=browser_context,
         use_vision=True
     )
     return await agent.run()
+
+
+
 
 # Keep the first definition of fill_profile_info
 async def fill_profile_info(browser_context, llm):
@@ -85,13 +89,53 @@ async def fill_student_preferences(browser_context, llm):
     )
     return await agent.run()
 
+
+# Create controller with file upload action
+controller = Controller()
+
+@controller.action('upload_file')
+async def upload_file(page: Any, file_path: str) -> ActionResult:
+    try:
+        # Wait for the upload button to be visible and enabled
+        # Using a more general selector for the button text
+        upload_button = await page.wait_for_selector('button:has-text("Upload Document")', state='visible', timeout=10000)
+        if not upload_button:
+             return ActionResult(success=False, message="Upload Document button not found")
+
+        # Wait for the file chooser dialog to appear after clicking the button
+        async with page.context.expect_filechooser() as fc_info:
+             await upload_button.click()
+
+        file_chooser = await fc_info.value
+
+        # Set the file(s) on the file chooser
+        await file_chooser.set_files(file_path)
+
+        # Wait for a reasonable time for the upload to process and UI to update
+        # This timeout might need adjustment based on upload speed and server response
+        await page.wait_for_timeout(5000)
+
+        # Verify upload completion - look for the filename in the DOM
+        file_name = file_path.split('\\')[-1]
+        try:
+            # Wait for the file name to appear on the page as a confirmation
+            await page.wait_for_selector(f'text="{file_name}"', timeout=15000)
+            # You might also want to wait for a progress indicator to disappear
+            # or a success message to appear, depending on the website's UI.
+            # Example: await page.wait_for_selector('.upload-progress-spinner', state='hidden', timeout=10000)
+            return ActionResult(success=True, message="File uploaded successfully")
+        except Exception:
+            # If the file name doesn't appear within the timeout, assume failure
+            return ActionResult(success=False, message=f"File name '{file_name}' did not appear on the page after upload.")
+
+    except Exception as e:
+        return ActionResult(success=False, message=f"File upload failed: {str(e)}")
+
 async def fill_academic_info(browser_context, llm):
     agent = Agent(
         llm=llm,
         task="""In the Academic Information section: Click edit,
-        All the below fields are in Left to right order for 3 field then second row for next 3 fields and so on.Kepp scrolling if needed to make more fields visible.
-          Fill Select Country field: Type "Canada" then a dropdown will appear Select the Canada from the dropdown,
-          Fill Select State field: Type "Ontario" then a dropdown will appear Select the Ontario from the dropdown,
+         Onece the fields are visible, immediately start filling the fields with the data below:
           Fill Select Qualification field: Type "Bachelors degree" then a dropdown will appear Select the Bachelors degree from the dropdown,
           Left of that will be Select gap in studies field: Click dropdown, select '0'.
           left of that will be the Enter Years of education Field: Type 4,
@@ -104,11 +148,15 @@ async def fill_academic_info(browser_context, llm):
           Select Accridation field: Click on the fied and select "A++" from the dropdown,  
           Select University field: Type "University of Delhi" then a dropdown will appear Select the "University of Delhi" from the dropdown,
           Documents field: Type UG Eight Sem Mark Sheet and then a dropdown will appear Select the "UG Eight Sem Mark Sheet" from the dropdown,
-          Click on the Upload Document tab and upload the document file: "c:\\Users\\91787\\Documents\\Browser automation\\Sunderam Dutta portfolio.pdf" , and then click on the save button.
-         .""",
+          For the Documents field: Use the upload_file action with path: "c:\\Users\\91787\\Documents\\Browser automation\\Sunderam Dutta portfolio.pdf"
+          
+          Scroll up to find the save button and Click the save button""",  
         browser_context=browser_context,
-        use_vision=True,
-        upload_files={"marksheet": "c:\\Users\\91787\\Documents\\Browser automation\\Sunderam Dutta portfolio.pdf"}  # Changed from 'files' to 'upload_files'
+        controller=controller,
+        extend_system_message = """
+        Always Scroll 60 pixels at a time and then check for the correct field, scroll up, down as needed, remember scrolling is there for navigating and finding the correct fields. First two sections are the Profile information, Student Preferences, the the Academic Information section starts where you fill the details.
+         """,
+        use_vision=True
     )
     return await agent.run()
 
@@ -191,34 +239,34 @@ async def main():
         llm = await get_llm()
         context = await browser.new_context()
 
-        # Test Phase 1: Initial Navigation
-        print("\n=== Testing Navigation ===")
+        # Phase 1: Navigation
+        print("\n=== Navigation ===")
         print("Navigating to student profile...")
         await navigate_to_profile(context, llm)
         print("Navigation completed")
         await asyncio.sleep(3)  # Wait for page to load completely
 
-        # Test Phase 2: Profile Information
-        print("\n=== Testing Profile Information ===")
-        print("Starting to fill Profile Information...")
+        # Phase 2: Profile Information
+        print("\n=== Profile Information ===")
+        print("Filling profile information...")
         await fill_profile_info(context, llm)
-        print("Profile Information completed")
-        await asyncio.sleep(2)  # Wait between sections
+        print("Profile information completed")
+        await asyncio.sleep(2)
 
-        # Test Phase 3: Student Preferences
-        print("\n=== Testing Student Preferences ===")
-        print("Starting to fill Student Preferences...")
+        # Phase 3: Student Preferences
+        print("\n=== Student Preferences ===")
+        print("Filling student preferences...")
         await fill_student_preferences(context, llm)
-        print("Student Preferences completed")
-        await asyncio.sleep(2)  # Wait between sections
+        print("Student preferences completed")
+        await asyncio.sleep(2)
 
-        # Test Phase 4: Academic Information
-        print("\n=== Testing Academic Information ===")
-        print("Starting to fill Academic Information...")
+        # Phase 4: Academic Information
+        print("\n=== Academic Information ===")
+        print("Filling academic information...")
         await fill_academic_info(context, llm)
-        print("Academic Information completed")
+        print("Academic information completed")
 
-        print("\nAll test phases completed successfully")
+        print("\nAll tests completed successfully")
 
     except Exception as e:
         print(f"\nAn error occurred: {e}")
